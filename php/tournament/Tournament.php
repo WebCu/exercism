@@ -43,7 +43,7 @@ class Tournament
         return $this->format();
     }
 
-    public function getGamesTokens(string $score): Generator
+    private function getGamesTokens(string $score): Generator
     {
         if (empty($score)) {
             return;
@@ -59,7 +59,7 @@ class Tournament
         return explode(self::GAME_SEPARATOR, $gameLine);
     }
 
-    public function parse(Generator $gamesTokens): void
+    private function parse(Generator $gamesTokens): void
     {
         foreach ($gamesTokens as $gameToken) {
             [$homeTeam, $visitorTeam, $result] = $gameToken;
@@ -88,43 +88,43 @@ class Tournament
         }
     }
 
-    public function setTeam(string $teamName): void
+    private function setTeam(string $teamName): void
     {
         if (!isset($this->teams[$teamName])) {
             $this->teams[$teamName] = [self::NAME => $teamName, self::WIN => 0, self::DRAW => 0, self::LOSS => 0, self::MATCHES_PLAYED => 0, self::POINTS => 0];
         }
     }
 
-    public function increaseMatchesPlayed(string $teamName): void
+    private function increaseMatchesPlayed(string $teamName): void
     {
         $this->teams[$teamName][self::MATCHES_PLAYED]++;
     }
 
-    public function increaseVictories(string $teamName): void
+    private function increaseVictories(string $teamName): void
     {
         $this->teams[$teamName][self::WIN]++;
         $this->teams[$teamName][self::POINTS] += self::POINTS_FOR_VICTORY;
     }
 
-    public function increaseDraws(string $teamName): void
+    private function increaseDraws(string $teamName): void
     {
         $this->teams[$teamName][self::DRAW]++;
         $this->teams[$teamName][self::POINTS] += self::POINTS_FOR_DRAW;
     }
 
-    public function increaseLosses(string $teamName): void
+    private function increaseLosses(string $teamName): void
     {
         $this->teams[$teamName][self::LOSS]++;
     }
 
-    public function sortByPointsAndName(): void 
+    private function sortByPointsAndName(): void 
     {
         usort($this->teams, function(array $firstTeam, array $secondTeam) {
             return [$secondTeam[self::POINTS], $firstTeam[self::NAME]] <=> [$firstTeam[self::POINTS], $secondTeam[self::NAME]];
         });
     }
 
-    public function format(): string
+    private function format(): string
     {
         $output = [sprintf($this->format, 'Team', 'MP', 'W', 'D', 'L', 'P')];
 
