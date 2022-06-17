@@ -4,40 +4,32 @@ declare(strict_types=1);
 
 class Tournament
 {
-    private const NAME = 'name';
-    private const POINTS = 'points';
-    private const MATCHES_PLAYED = 'mp';
-    private const WIN = 'win';
-    private const DRAW = 'draw';
-    private const LOSS = 'loss';
+    private const TEAM_NAME = 'Team';
+    private const TEAM_POINTS = 'P';
+    private const TEAM_MATCHES_PLAYED = 'MP';
+    private const TEAM_WINS = 'W';
+    private const TEAM_DRAWS = 'D';
+    private const TEAM_LOSSES = 'L';
+
+    private const RESULT_WIN = 'win';
+    private const RESULT_DRAW = 'draw';
+    private const RESULT_LOSS = 'loss';
 
     private const POINTS_FOR_VICTORY = 3;
     private const POINTS_FOR_DRAW = 1;
 
     private const GAME_SEPARATOR = ';';
-    private const COLS_SEPARATOR = ' | ';
-    private const COLS_FORMAT = [
-        'Team' => '%-30s',
-        'MP' => '%2s',
-        'W' => '%2s',
-        'D' => '%2s',
-        'L' => '%2s',
-        'P' => '%2s'
-    ];
+    private const ROW_FORMAT = '%-30s | %2s | %2s | %2s | %2s | %2s';
 
-    private $format; 
     private $teams = [];
-
-    public function __construct()
-    {
-        $this->format = implode(self::COLS_SEPARATOR, self::COLS_FORMAT);
-    }
+    private $games = [];
 
     public function tally(string $score): string
     {
         $this->parse(
             $this->getGamesTokens($score)
         );
+        $this->computeTournamentResults();
         $this->sortByPointsAndName();
 
         return $this->format();
@@ -50,93 +42,97 @@ class Tournament
         }
 
         foreach (explode(PHP_EOL, $score) as $gameLine) {
-            yield $this->getGameTokens($gameLine);
+            yield explode(self::GAME_SEPARATOR, $gameLine);
         }
-    }
-
-    private function getGameTokens(string $gameLine): array
-    {
-        return explode(self::GAME_SEPARATOR, $gameLine);
     }
 
     private function parse(Generator $gamesTokens): void
     {
         foreach ($gamesTokens as $gameToken) {
-            [$homeTeam, $visitorTeam, $result] = $gameToken;
+            [$homeTeam, $visitorTeam] = $gameToken;
             $this->setTeam($homeTeam);
             $this->setTeam($visitorTeam);
 
-            $this->increaseMatchesPlayed($homeTeam);
-            $this->increaseMatchesPlayed($visitorTeam);
-
-            switch ($result) {
-                case self::WIN:
-                    $this->increaseVictories($homeTeam);
-                    $this->increaseLosses($visitorTeam);
-                    break;
-
-                case self::DRAW:
-                    $this->increaseDraws($homeTeam);
-                    $this->increaseDraws($visitorTeam);
-                    break;
-
-                case self::LOSS:
-                    $this->increaseLosses($homeTeam);
-                    $this->increaseVictories($visitorTeam);
-                    break;
-            }            
+            $this->games[] = $gameToken;
         }
     }
 
     private function setTeam(string $teamName): void
     {
         if (!isset($this->teams[$teamName])) {
-            $this->teams[$teamName] = [self::NAME => $teamName, self::WIN => 0, self::DRAW => 0, self::LOSS => 0, self::MATCHES_PLAYED => 0, self::POINTS => 0];
+            $this->teams[$teamName] = [
+                self::TEAM_NAME => $teamName,
+                self::TEAM_WINS => 0, 
+                self::TEAM_DRAWS => 0, 
+                self::TEAM_LOSSES => 0, 
+                self::TEAM_MATCHES_PLAYED => 0, 
+                self::TEAM_POINTS => 0,
+            ];
         }
     }
 
-    private function increaseMatchesPlayed(string $teamName): void
+    private function computeTournamentResults(): void 
     {
-        $this->teams[$teamName][self::MATCHES_PLAYED]++;
-    }
+        foreach ($this->games as $game) {
+            [$homeTeam, $visitorTeam, $result] = $game;
 
-    private function increaseVictories(string $teamName): void
-    {
-        $this->teams[$teamName][self::WIN]++;
-        $this->teams[$teamName][self::POINTS] += self::POINTS_FOR_VICTORY;
-    }
+            $this->teams[$homeTeam][self::TEAM_MATCHES_PLAYED]++;
+            $this->teams[$visitorTeam][self::TEAM_MATCHES_PLAYED]++;
 
-    private function increaseDraws(string $teamName): void
-    {
-        $this->teams[$teamName][self::DRAW]++;
-        $this->teams[$teamName][self::POINTS] += self::POINTS_FOR_DRAW;
-    }
+            switch ($result) {
+                case self::RESULT_WIN:
+                    $this->teams[$homeTeam][self::TEAM_WINS]++;
+                    $this->teams[$homeTeam][self::TEAM_POINTS] += self::POINTS_FOR_VICTORY;
+                    $this->teams[$visitorTeam][self::TEAM_LOSSES]++;
+                    break;
 
-    private function increaseLosses(string $teamName): void
-    {
-        $this->teams[$teamName][self::LOSS]++;
+                case self::RESULT_DRAW:
+                    $this->teams[$homeTeam][self::TEAM_DRAWS]++;
+                    $this->teams[$homeTeam][self::TEAM_POINTS] += self::POINTS_FOR_DRAW;
+                    $this->teams[$visitorTeam][self::TEAM_DRAWS]++;
+                    $this->teams[$visitorTeam][self::TEAM_POINTS] += self::POINTS_FOR_DRAW;
+                    break;
+
+                case self::RESULT_LOSS:
+                    $this->teams[$homeTeam][self::TEAM_LOSSES]++;
+                    $this->teams[$visitorTeam][self::TEAM_WINS]++;
+                    $this->teams[$visitorTeam][self::TEAM_POINTS] += self::POINTS_FOR_VICTORY;
+                    break;
+            }            
+        }
     }
 
     private function sortByPointsAndName(): void 
     {
         usort($this->teams, function(array $firstTeam, array $secondTeam) {
-            return [$secondTeam[self::POINTS], $firstTeam[self::NAME]] <=> [$firstTeam[self::POINTS], $secondTeam[self::NAME]];
+            return [$secondTeam[self::TEAM_POINTS], $firstTeam[self::TEAM_NAME]] <=> [$firstTeam[self::TEAM_POINTS], $secondTeam[self::TEAM_NAME]];
         });
     }
 
     private function format(): string
     {
-        $output = [sprintf($this->format, 'Team', 'MP', 'W', 'D', 'L', 'P')];
+        $output = [sprintf(
+            self::ROW_FORMAT,
+            self::TEAM_NAME,
+            self::TEAM_MATCHES_PLAYED, 
+            self::TEAM_WINS,
+            self::TEAM_DRAWS,
+            self::TEAM_LOSSES, 
+            self::TEAM_POINTS,
+        )];
 
         foreach ($this->teams as $team) {
-            $output[] = $this->toRow($team);
+            $output[] = sprintf(
+                self::ROW_FORMAT,
+                $team[self::TEAM_NAME],
+                $team[self::TEAM_MATCHES_PLAYED],
+                $team[self::TEAM_WINS],
+                $team[self::TEAM_DRAWS],
+                $team[self::TEAM_LOSSES],
+                $team[self::TEAM_POINTS]
+            );
         }
 
         return implode(PHP_EOL, $output);
-    }
-
-    private function toRow(array $team): string
-    {
-        return sprintf($this->format, $team[self::NAME], $team[self::MATCHES_PLAYED], $team[self::WIN], $team[self::DRAW], $team[self::LOSS], $team[self::POINTS]);
     }
 }
