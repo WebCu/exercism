@@ -34,11 +34,33 @@ class HighScores
     public function __construct(array $scores)
     {
         $this->scores = $scores;
-        $this->latest = $scores[array_key_last($scores)];
-        
-        rsort($scores);
-        
-        $this->personalBest = $scores[0];
-        $this->personalTopThree = array_slice($scores, 0, 3);
+
+        foreach ($scores as $score) {
+            if ($score > $this->personalBest) {
+                $this->personalBest = $score;
+            }
+
+            $this->updateTopThree($score);
+        }
+
+        $this->latest = $score;
+    }
+
+    private function updateTopThree(int $score)
+    {
+        for ($i = 0; $i < 3; $i++) {
+            if (!isset($this->personalTopThree[$i])) {
+                $this->personalTopThree[$i] = $score;
+                break;
+            }
+
+            if ($this->personalTopThree[$i] >= $score) {
+                continue;
+            }
+
+            $tmp = $this->personalTopThree[$i];
+            $this->personalTopThree[$i] = $score;
+            $score = $tmp;
+        }
     }
 }
