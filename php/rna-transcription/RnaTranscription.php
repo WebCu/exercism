@@ -34,11 +34,5 @@ const COMPLEMENTS = [
 
 function toRna(string $dna): string
 {
-    $rna = '';
-
-    for ($i = 0, $length = strlen($dna); $i < $length; $i++) {
-        $rna .= COMPLEMENTS[$dna[$i]];
-    }
-
-    return $rna;
+    return strtr($dna, COMPLEMENTS);
 }
